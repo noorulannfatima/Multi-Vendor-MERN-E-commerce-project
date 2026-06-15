@@ -32,42 +32,37 @@ const addProduct = async(req, res) => {
 
 const editProduct = async(req, res) => {
     try{
-        if(checkUser(req, res)!=true){
-        return res.status(404).json({
-            message: 'Unauhorize Access'
-        })
-    }
         const {productId} = req.params;
-        const Product = await Product.findById(productId);
-        const image = []
-        if(Product){
-            for(i=0; i<req.files.length; i++){
-            const result = await cloudinary.uploader.upload(req.files[i].path,{
-                public_id: Product.image[i].split('/').pop(),
-                overwrite: true,
-                invalidate: true
-            });
-            image.push(result.secure_url)
+        const existing = await Product.findById(productId);
+        if (!existing) {
+            return res.status(404).json({ message: 'Product not found' });
         }
-            const {name, description, category, price, offerPrice} = req.body
-            if(image.length>0 || name || description || category || price || offerPrice){
-                const editedProduct = await Product.findByIdAndUpdate(productId, {
-                    image, name, description, category, price}, {returnDocument: 'after'});
+
+        // Only re-upload images if new files were provided; otherwise keep existing ones.
+        let image = existing.image;
+        if (req.files && req.files.length > 0) {
+            image = [];
+            for (let i = 0; i < req.files.length; i++) {
+                const result = await cloudinary.uploader.upload(req.files[i].path);
+                image.push(result.secure_url);
             }
-            res.status(200).json({message: 'product edited'})
         }
+
+        const {name, description, category, price, offerPrice} = req.body;
+        const editedProduct = await Product.findByIdAndUpdate(
+            productId,
+            { image, name, description, category, price, offerPrice },
+            { new: true }
+        );
+        return res.status(200).json({ message: 'Product edited', data: editedProduct });
     }catch(e){
+        console.error('editProduct error:', e);
         res.status(500).json({message: 'Product not edited'})
     }
 }
 
 const deleteProduct = async(req, res) => {
     try{
-        if(checkUser(req, res)!=true){
-        return res.status(404).json({
-            message: 'Unauhorize Access'
-        })
-    }
         const {productId} = req.params;
         const deletedProduct = await Product.findByIdAndDelete(productId);
         for(const imageUrl of deletedProduct.image){
@@ -153,12 +148,4 @@ module.exports = {
     getSingleProduct,
     getProductByCategory,
     getProductBySearch
-}
-
-const checkUser = async(req, res) => {
-    const {userId} = req.params;
-    const user = await User.findOne({_id: userId})
-    if(user.role == 'admin'){
-        return true;
-    }
 }
