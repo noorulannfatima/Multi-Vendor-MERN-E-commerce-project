@@ -38,6 +38,48 @@ const signup = async(req, res) => {
     }
 }
 
+// Registers a vendor/seller account (role: 'admin'). Sellers get access to the
+// seller dashboard and the admin product/order routes.
+const sellerSignup = async(req, res) => {
+    try{
+        const { username, name, email, password } = req.body;
+        const userName = username || name;
+
+        if (!userName || !email || !password) {
+            return res.status(400).json({ success: false, message: 'username, email and password are required' });
+        }
+
+        const existingUser1 = await User.findOne({ username: userName })
+        const existingUser2 = await User.findOne({ email })
+
+        if(existingUser1 || existingUser2){
+            return res.status(409).json({ success: false, message: 'Seller already exists!'})
+        }
+
+        const newUser = new User({ username: userName, email, password, role: 'admin' });
+        await newUser.save();
+
+        const token = jwt.sign(
+            {id: newUser._id},
+            process.env.JWT_SECRET_KEY,
+            {expiresIn: '24h'}
+        )
+
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: "strict"
+        });
+        res.status(201).json({ success: true, message: 'Seller account created!', data: {token, user: {_id: newUser._id, username: newUser.username, email: newUser.email, role: newUser.role}}})
+    }catch(e){
+        res.status(500).json({
+            success: false,
+            message: 'Seller is not created',
+            error: e.message
+        });
+    }
+}
+
 const isAuth = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
@@ -100,5 +142,5 @@ const signout = (req, res) => {
     }
 }
 module.exports = {
-    signup, signin, signout, isAuth
+    signup, sellerSignup, signin, signout, isAuth
 }

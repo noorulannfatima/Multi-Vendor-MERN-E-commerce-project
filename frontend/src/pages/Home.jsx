@@ -1,6 +1,7 @@
 import MainBanner from '../components/MainBanner'
 import Categories from '../components/Categories'
 import BestSeller from '../components/BestSeller'
+import JoinSeller from '../components/JoinSeller'
 import Newletter from '../components/Newletter'
 
 const Home = () => {
@@ -9,6 +10,7 @@ const Home = () => {
       <MainBanner />
       <Categories />
       <BestSeller />
+      <JoinSeller />
       <Newletter />
     </div>
   )

@@ -29,7 +29,13 @@ const productSchema = new mongoose.Schema({
     offerPrice: {
         type: Number,
         required : true
+    },
+    // The vendor (User with role 'admin') who owns this product. Optional so
+    // existing products and the current addProduct flow keep working.
+    seller: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }
-})
+}, { timestamps: true })
 
 module.exports = mongoose.model('Product', productSchema)
